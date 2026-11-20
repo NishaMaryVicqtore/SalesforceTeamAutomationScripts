@@ -169,7 +169,7 @@ def search_board_issues(
             pat,
             params={
                 "jql": jql,
-                "fields": "summary,reporter,status,comment",
+                "fields": "summary,assignee,status,comment",
                 "maxResults": 50,
                 "startAt": start_at,
             },
@@ -256,7 +256,7 @@ def build_rows(
     rows: list[BlockedTicket] = []
     for issue in issues:
         fields = issue.get("fields") or {}
-        reporter = fields.get("reporter") or {}
+        assignee = fields.get("assignee") or {}
         status = fields.get("status") or {}
         histories = fetch_changelog_histories(session, base_url, pat, issue["key"])
         moved = since_in_status(histories, status_name)
@@ -264,7 +264,7 @@ def build_rows(
             BlockedTicket(
                 key=issue["key"],
                 title=fields.get("summary") or "",
-                waiting_on=reporter.get("displayName") or "",
+                waiting_on=assignee.get("displayName") or "",
                 since=moved,
                 days=days_since(moved, now),
                 reason=last_comment(issue),
@@ -279,16 +279,21 @@ def cell(value: str) -> str:
     return f"<td><p>{escape(value) if value else ''}</p></td>"
 
 
-def build_storage(rows: list[BlockedTicket], now: datetime, status_name: str) -> str:
+def build_storage(
+    rows: list[BlockedTicket],
+    now: datetime,
+    status_name: str,
+    heading: str = "IN Verification — waiting on stakeholder",
+) -> str:
     stamp = now.astimezone().strftime("%Y-%m-%d %H:%M %Z")
     intro = (
         f"<p>Tickets currently in <strong>{escape(status_name)}</strong> on "
         f"<strong>GSIS - Scrum Board</strong>. "
-        f"<strong>Waiting on</strong> is the Jira reporter. "
+        f"<strong>Waiting on</strong> is the current Jira assignee. "
         f"<strong>Since</strong> / <strong>Days</strong> use the last move into "
         f"{escape(status_name)}. <strong>Reason</strong> is the latest comment.</p>"
         f"<p>Last updated {escape(stamp)}. {len(rows)} ticket(s).</p>"
-        f"<h2>IN Verification — waiting on stakeholder</h2>"
+        f"<h2>{escape(heading)}</h2>"
     )
     header = (
         "<table class=\"wrapped\" data-layout=\"full-width\">"
@@ -352,6 +357,7 @@ def update_confluence(
     page_id: str,
     title: str,
     storage: str,
+    version_message: str = "Nightly IN Verification refresh from Jira",
 ) -> int:
     current = api_request(
         session,
@@ -367,7 +373,7 @@ def update_confluence(
         "title": title,
         "version": {
             "number": next_version,
-            "message": "Nightly IN Verification refresh from Jira",
+            "message": version_message,
         },
         "body": {"storage": {"value": storage, "representation": "storage"}},
     }

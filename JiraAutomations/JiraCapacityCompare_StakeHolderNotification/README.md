@@ -37,7 +37,7 @@ Reports land in `output/`. Occupied % is `story points / capacity hours * 100` (
 
 `update_in_verification.py` reads GSIS board tickets in **IN Verification** and updates [Tickets blocked by stakeholder](https://confluence.trimble.tools/spaces/GS/pages/1261831310/Tickets+blocked+by+stakeholder).
 
-Columns: Ticket, Title (summary), Waiting on (reporter), Since (last move into IN Verification), Days, Reason (latest comment), Status.
+Columns: Ticket, Title (summary), Waiting on (current assignee), Since (last move into IN Verification), Days, Reason (latest comment), Status.
 
 ```powershell
 python update_in_verification.py --dry-run
@@ -46,3 +46,17 @@ python update_in_verification.py
 ```
 
 On Windows this registers Task Scheduler job **GSIS IN Verification Confluence Sync** for Monday–Friday at 11:30 (not a Unix crontab).
+
+## Weekday Blocker → Confluence
+
+`update_blocked.py` reads GSIS board tickets in **Blocker** (the board column for blocked work) and updates [Tickets in 'Blocked' state](https://confluence.trimble.tools/spaces/GS/pages/1303283178/Tickets+in+Blocked+state).
+
+Columns match the IN Verification page: Ticket, Title, Waiting on (current assignee), Since, Days, Reason (latest comment), Status.
+
+```powershell
+python update_blocked.py --dry-run
+python update_blocked.py
+.\install_nightly_task.ps1 11:30
+```
+
+`install_nightly_task.ps1` also registers **GSIS Blocked Confluence Sync** for Monday–Friday at 11:30.
